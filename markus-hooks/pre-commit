@@ -1,4 +1,0 @@
-#!/bin/sh
-
-# OSX and Linux users: probably need to change this to python3
-python3 markus-hooks/multihook_client.py
