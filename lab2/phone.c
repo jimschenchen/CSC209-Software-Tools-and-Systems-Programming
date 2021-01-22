@@ -8,7 +8,7 @@
 int main() {
     char phone[11];
     int index;
-    printf("Type your phone number and index please:");
+    
     scanf("%s%d", phone, &index);
 
     if (index == -1) {
