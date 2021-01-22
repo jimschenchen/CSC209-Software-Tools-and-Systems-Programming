@@ -10,6 +10,7 @@ void invest (double *principal, double rate) {
 }
 
 
+
 /*
  * NOTE: don't change the main function!
  * Sample usage:
