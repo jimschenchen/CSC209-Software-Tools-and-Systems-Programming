@@ -9,8 +9,20 @@
    Do not allocate any more memory than necessary.
 */
 int **split_array(const int *s, int length) {
+  int **ret = malloc(sizeof(int *) * 2);
+  int even_size = (length + 1) / 2;
+  int odd_size = (length) / 2;
+  ret[0] = malloc(sizeof(int) * even_size);
+  ret[1] = malloc(sizeof(int) * odd_size);
 
-
+  for (int i = 0; i < length; i++) {
+    if (i % 2 == 0) {
+      ret[0][i/2] = s[i];
+    } else {
+      ret[1][(i-1)/2] = s[i];
+    }
+  }
+  return ret;
 }
 
 /* Return a pointer to an array of ints with size elements.
@@ -20,8 +32,13 @@ int **split_array(const int *s, int length) {
  */
 
 int *build_array(char **strs, int size) {
+  int *int_arr = malloc(sizeof(int) * size);
 
+  for (int i = 0; i < size; i++) {
+    int_arr[i] = strtol(strs[i], NULL, 10);
+  }
 
+  return int_arr;
 }
 
 
@@ -30,8 +47,8 @@ int main(int argc, char **argv) {
        arguments.  Do not add any additional lines of code to the main
        function or make other changes.
      */
-    int *full_array = build_array(/* fill in the arguments*/);
-    int **result = split_array(full_array, /* fill in this argument */);
+    int *full_array = build_array(&argv[1], argc - 1);
+    int **result = split_array(full_array, argc - 1);
 
     printf("Original array:\n");
     for (int i = 0; i < argc - 1; i++) {

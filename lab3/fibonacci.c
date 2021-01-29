@@ -15,6 +15,20 @@
  */
 
 /* Write your solution here */
+void fib (int **sequence_ptr, int count) {
+    *sequence_ptr = malloc(sizeof(int) * count);
+    int *sequence = *sequence_ptr;
+
+    for (int i = 0; i < count; i ++) {
+        if (i == 0) {
+            sequence[i] = 0;
+        } else if (i == 1) {
+            sequence[i] = 1;
+        } else {
+            sequence[i] = sequence[i - 2] + sequence[i - 1];
+        }
+    }
+}
 
 
 int main(int argc, char **argv) {
