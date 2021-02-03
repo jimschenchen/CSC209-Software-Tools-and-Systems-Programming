@@ -53,8 +53,17 @@ void load_image(char *filename, unsigned char *img) {
         perror("fopen");
         exit(1);
     }
-	//TODO
+    // consume width and height
+	int width, height;
+    fscanf(f2, "P2 %d %d 255 ", &width, &height);
 
+    // save the image body
+    int index = 0;
+    while (fscanf(f2, "%hhu ", &img[index]) == 1) {
+        index += 1;
+    }
+
+    // closed stream
     fclose(f2);
 }
 
@@ -81,10 +90,22 @@ int load_dataset(char *filename,
         exit(1);
     }
 
-    //TODO
+    // Load images to dataset
+    int index = -1;
+    char imagefilename[MAX_NAME];
+    while(fscanf(f1, "%s\n", imagefilename) == 1){
+        // index increasement
+        index += 1;
+
+        // add labels
+        labels[index] = get_label(imagefilename);
+
+        // load image to dataset
+        load_image(imagefilename, dataset[index]);
+    }
 
     fclose(f1);
-    return -1;
+    return index + 1;
 }
 
 /** 
@@ -92,11 +113,30 @@ int load_dataset(char *filename,
  * a and b.  (See handout for the euclidean distance function)
  */
 double distance(unsigned char *a, unsigned char *b) {
-
-    // TODO
-
-    return 0.0;
+    double base = 0;
+    for (int i =0; i < NUM_PIXELS; i++) {
+        base += (a[i] - b[i]) * (a[i] - b[i]);
+    }
+    return sqrt(base);
 }
+
+
+/**
+ * Helper Func
+ * find the smallest; return the smaller index if tie
+ */
+int get_smallest_labels(int *frequency, int listsize) {
+    int smallest = frequency[0];
+    int smallest_index = 0;
+    for (int i =0; i < listsize; i++) {
+        if (frequency[i] > smallest) {
+            smallest = frequency[i];
+            smallest_index = i;
+        }
+    }
+    return smallest_index;
+}
+
 
 /**
  * Return the most frequent label of the K most similar images to "input"
@@ -124,8 +164,48 @@ int knn_predict(unsigned char *input, int K,
                 unsigned char dataset[MAX_SIZE][NUM_PIXELS],
                 unsigned char *labels,
                 int training_size) {
+    // arr init
+    double distance_arr[training_size];
+    int index_arr[training_size];
 
-    // TODO
+    // store distance
+    for (int i = 0; i < training_size; i++) {
+        distance_arr[i] = distance(input, dataset[i]);
+        index_arr[i] = i;
+    }
 
-    return -1;
+    // move k smallest to front; selection sort
+    for (int i = 0; i < K; i++) {
+        // find the smallest
+        int svalue = distance_arr[training_size - 1];
+        int sindex = training_size - 1;
+        for (int j = training_size - 1; j >= i; j--) {
+            if (distance_arr[j] < svalue) {
+                svalue = distance_arr[j];
+                sindex = j;
+            }
+        }
+        // swap sindex with i
+        int temp_value = distance_arr[i];
+        distance_arr[i] = distance_arr[sindex];
+        distance_arr[sindex] = temp_value;
+        int temp_index = index_arr[i];
+        index_arr[i] = index_arr[sindex];
+        index_arr[sindex] = temp_index;
+    }
+
+    // init frequency !warm: arr[] must init with all 0
+    int frequency[10];
+    for (int i =0; i< 10; i++) {
+        frequency[i] = 0;
+    }
+
+    // count the frequency
+    for (int i = 0; i < K; i++) {
+        int index = labels[index_arr[i]];
+        frequency[index] += 1;
+
+    }
+
+    return get_smallest_labels(frequency, 10);
 }
