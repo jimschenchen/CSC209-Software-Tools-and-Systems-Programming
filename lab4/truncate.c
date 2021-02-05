@@ -12,7 +12,7 @@
     the string "fun" and returns 5.
 */
 
-
+int truncate(char *s, int n);
 
 int main(int argc, char **argv) {
     /* Do not change the main function */
@@ -28,4 +28,10 @@ int main(int argc, char **argv) {
     printf("%d %s\n", soln_val, target);
 
     return 0;
+}
+
+int truncate(char *s, int n) {
+    int length = strlen(s);
+    s[n] = '\0';
+    return length - n;
 }

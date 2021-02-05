@@ -28,6 +28,7 @@
 
 // Write the function strip_q_marks here
 
+int strip_q_marks(char *s);
 
 int main(int argc, char **argv) {
     // Do not change this main function.
@@ -38,4 +39,14 @@ int main(int argc, char **argv) {
     int result = strip_q_marks(argv[1]);
     printf("%s %d", argv[1], result);
     return 0;
+}
+
+int strip_q_marks(char *s) {
+    int slen = strlen(s);
+    int i = slen;
+    while (s[i - 1] == '?') {
+        i -= 1;
+    }
+    s[i] = '\0';
+    return slen - i;
 }
