@@ -38,33 +38,32 @@ int main(int argc, char **argv) {
     char *name = argv[2];
 
     // Your code goes here
-    // printf("%s\n", argv[1]);
-    // printf("%s\n", argv[2]);
-
-    // int glen = strlen(argv[1]);
-
-    // printf("%d\n", glen);
-
-    // if (glen > 18) {
-    //     strncpy(greeting, argv[1], 19);
-    //     greeting[19] = '\0';
-    // } else {
-    //     strncpy(greeting, argv[1], glen);
-    //     printf("%s\n", greeting);
-    //     strcat(greeting, " ");
-    //     printf("%s\n", greeting);
-    //     strncat(greeting, name, 19 - strlen(argv[1]));
-    //     greeting[19] = '\0';
-    // }    
     int glen = strlen(argv[1]);
     int nlen = strlen(argv[2]);
-    char large[glen + nlen];
-    strncpy(large, argv[1], glen);
-    strncat(large, " ", 1);
-    strncat(large, name, nlen);
-    large[19] = '\0';
-    strncpy(greeting, large, 19);
-    greeting[19] = '\0';
+
+    if (glen > 18) {
+        strncpy(greeting, argv[1], 19);
+        greeting[19] = '\0';
+    } else {
+        strncpy(greeting, argv[1], glen);
+        greeting[glen] = '\0';
+
+        strcat(greeting, " ");
+
+        strncat(greeting, name, 19 - glen);
+
+        // printf("%d\n", glen + nlen - 1);
+        greeting[glen + nlen + 1] = '\0';
+    }    
+    // int glen = strlen(argv[1]);
+    // int nlen = strlen(argv[2]);
+    // char large[glen + nlen + 1];
+    // strncpy(large, argv[1], glen);
+    // strncat(large, " ", 1);
+    // strncat(large, name, nlen);
+    // large[19] = '\0';
+    // strncpy(greeting, large, 19);
+    // greeting[19] = '\0';
 
     printf("%s\n", greeting);
     return 0;
