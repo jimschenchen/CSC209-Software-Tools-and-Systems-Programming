@@ -37,6 +37,9 @@ int main(int argc, char **argv) {
     char greeting[20];
     char *name = argv[2];
 
+    printf("%s\n", argv[1]);
+    printf("%s\n", argv[2]);
+
     // Your code goes here
     int glen = strlen(argv[1]);
     if (glen > 19) {
@@ -48,6 +51,7 @@ int main(int argc, char **argv) {
         strncat(greeting, name, 19 - strlen(argv[1]));
         greeting[19] = '\0';
     }    
+
 
     printf("%s\n", greeting);
     return 0;
