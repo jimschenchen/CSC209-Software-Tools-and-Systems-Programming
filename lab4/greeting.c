@@ -43,27 +43,15 @@ int main(int argc, char **argv) {
 
     if (glen > 18) {
         strncpy(greeting, argv[1], 19);
+        // add null terminator if there is not
         greeting[19] = '\0';
     } else {
         strncpy(greeting, argv[1], glen);
         greeting[glen] = '\0';
-
         strcat(greeting, " ");
-
         strncat(greeting, name, 19 - glen);
-
-        // printf("%d\n", glen + nlen - 1);
         greeting[glen + nlen + 1] = '\0';
     }    
-    // int glen = strlen(argv[1]);
-    // int nlen = strlen(argv[2]);
-    // char large[glen + nlen + 1];
-    // strncpy(large, argv[1], glen);
-    // strncat(large, " ", 1);
-    // strncat(large, name, nlen);
-    // large[19] = '\0';
-    // strncpy(greeting, large, 19);
-    // greeting[19] = '\0';
 
     printf("%s\n", greeting);
     return 0;
