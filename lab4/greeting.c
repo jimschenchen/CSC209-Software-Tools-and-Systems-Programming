@@ -37,21 +37,34 @@ int main(int argc, char **argv) {
     char greeting[20];
     char *name = argv[2];
 
-    printf("%s\n", argv[1]);
-    printf("%s\n", argv[2]);
-
     // Your code goes here
-    int glen = strlen(argv[1]);
-    if (glen > 19) {
-        strncpy(greeting, argv[1], 19);
-        greeting[19] = '\0';
-    } else {
-        strncpy(greeting, argv[1], glen);
-        strncat(greeting, " ", 1);
-        strncat(greeting, name, 19 - strlen(argv[1]));
-        greeting[19] = '\0';
-    }    
+    // printf("%s\n", argv[1]);
+    // printf("%s\n", argv[2]);
 
+    // int glen = strlen(argv[1]);
+
+    // printf("%d\n", glen);
+
+    // if (glen > 18) {
+    //     strncpy(greeting, argv[1], 19);
+    //     greeting[19] = '\0';
+    // } else {
+    //     strncpy(greeting, argv[1], glen);
+    //     printf("%s\n", greeting);
+    //     strcat(greeting, " ");
+    //     printf("%s\n", greeting);
+    //     strncat(greeting, name, 19 - strlen(argv[1]));
+    //     greeting[19] = '\0';
+    // }    
+    int glen = strlen(argv[1]);
+    int nlen = strlen(argv[2]);
+    char large[glen + nlen];
+    strncpy(large, argv[1], glen);
+    strncat(large, " ", 1);
+    strncat(large, name, nlen);
+    large[19] = '\0';
+    strncpy(greeting, large, 19);
+    greeting[19] = '\0';
 
     printf("%s\n", greeting);
     return 0;
