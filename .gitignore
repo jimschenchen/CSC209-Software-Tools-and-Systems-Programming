@@ -1,2 +1,7 @@
 
 .DS_Store
+
+/a1/datasets
+a1/lists/training_jim.txt
+a1/classifier
+.vscode/settings.json
