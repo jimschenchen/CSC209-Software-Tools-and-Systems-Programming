@@ -172,8 +172,8 @@ void get_most_frequent(Dataset *data, int M, int *indices, int *label, int *freq
  */
 int find_best_split(Dataset *data, int M, int *indices) {
     // TODO: Return the correct pixel
-    int min_i = INFINITY;
-    double min_v = INFINITY;
+    int min_i = -1;
+    double min_v = 1;
     for (int i = 0; i < 784; i++) {
         double gini_v = gini_impurity(data, M, indices, i);
 
@@ -189,7 +189,7 @@ int find_best_split(Dataset *data, int M, int *indices) {
         }
     }
 
-    if (min_i == NAN || min_i == INFINITY) {
+    if (min_i == -1) {
         fprintf(stderr, "ERROR: find_best_split cannot find an appropriate pixel\n");
     }
     return min_i;
