@@ -30,7 +30,58 @@
  */
 Dataset *load_dataset(const char *filename) {
     // TODO: Allocate data, read image data / labels, return
-    return NULL;
+    int error;
+
+    // Malloc dataset
+    Dataset *ds = malloc(sizeof(Dataset));
+
+    // Open file
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL) {
+        perror("fopen");
+        exit(1);
+    }
+
+    // Read headers
+    error = fread(&ds->num_items, sizeof(int), 1, file);
+    if (error != 1) {
+        fprintf(stderr, "Error: could not fread header\n");
+        return NULL;
+    }
+
+    // Malloc images, labels
+    ds->images = malloc(sizeof(Image) * ds->num_items);
+    ds->labels = malloc(sizeof(unsigned char) * ds->num_items);
+
+    // Read data
+    for(int i = 0; i < ds->num_items; i ++) {
+        // Read labels
+        error = fread(&ds->labels[i], 1, 1, file);
+        if (error != 1) {
+            fprintf(stderr, "Error: could not fread %d labels\n", i);
+            return NULL;
+        }
+
+        // Read images
+        ds->images[i].sx = WIDTH;
+        ds->images[i].sy = WIDTH;
+        // Malloc images data
+        ds->images[i].data = malloc(sizeof(unsigned char) * NUM_PIXELS);
+        error = fread(ds->images[i].data, sizeof(unsigned char), NUM_PIXELS, file);
+        if (error != NUM_PIXELS) {
+            fprintf(stderr, "Error: could not fread %d images\n", i);
+            return NULL;
+        }
+    }
+
+    // Close file
+    error = fclose(file);
+    if (error != 0) {
+        perror("fclose");
+        exit(1);
+    }
+
+    return ds;
 }
 
 /**
@@ -88,9 +139,24 @@ double gini_impurity(Dataset *data, int M, int *indices, int pixel) {
  */
 void get_most_frequent(Dataset *data, int M, int *indices, int *label, int *freq) {
     // TODO: Set the correct values and return
-    *label = 0;
-    *freq = 0;
-    return;
+    int freq_temp[10] = {0};
+
+    // Count freq of each label
+    for (int i = 0; i < M; i++) {
+        int img_idx = indices[i];
+        freq_temp[data->labels[img_idx]]++;
+    }
+
+    // Find max of freq
+    int max_i = 0;
+    for (int i = 0; i < 10; i++) {
+        if (freq_temp[i] > freq_temp[max_i]) {
+            max_i = i;
+        }
+    }
+    
+    *label = max_i;
+    *freq = freq_temp[max_i];
 }
 
 /**
@@ -106,7 +172,27 @@ void get_most_frequent(Dataset *data, int M, int *indices, int *label, int *freq
  */
 int find_best_split(Dataset *data, int M, int *indices) {
     // TODO: Return the correct pixel
-    return 0;
+    int min_i = INFINITY;
+    double min_v = INFINITY;
+    for (int i = 0; i < 784; i++) {
+        double gini_v = gini_impurity(data, M, indices, i);
+
+        // Exclude NAN INFINITY (JUST FOR SAFETY)
+        if (gini_v == NAN || gini_v == INFINITY) {
+            continue;
+        }
+
+        // NAN auto filter out by <
+        if (gini_v < min_v) {
+            min_v = gini_v;
+            min_i = i;
+        }
+    }
+
+    if (min_i == NAN || min_i == INFINITY) {
+        fprintf(stderr, "ERROR: find_best_split cannot find an appropriate pixel\n");
+    }
+    return min_i;
 }
 
 /**
@@ -132,7 +218,69 @@ int find_best_split(Dataset *data, int M, int *indices) {
 DTNode *build_subtree(Dataset *data, int M, int *indices) {
     // TODO: Construct and return the tree
 
-    return NULL;
+    // Malloc current node
+    DTNode *dtn = malloc(sizeof(DTNode));
+
+    // Classification
+    // Malloc label and freq
+    int *label = malloc(sizeof(int));
+    int *freq = malloc(sizeof(int));
+    get_most_frequent(data, M, indices, label, freq);
+
+    if ((double)*freq / M > THRESHOLD_RATIO) {
+        dtn->classification = *label;
+        dtn->pixel = -1;
+        dtn->left = NULL;
+        dtn->right = NULL;
+        free(label);
+        free(freq);
+        return dtn;
+    } else {
+        free(label);
+        free(freq);
+    }
+
+    // Find the pixel
+    int pixel =  find_best_split(data, M, indices);
+
+    // Get length
+    int left_M = 0, right_M = 0;
+
+    for (int i = 0; i < M; i++) {
+        int img_idx = indices[i];
+        if (data->images[img_idx].data[pixel] < 128) {
+            left_M += 1;
+        } else {
+            right_M += 1;
+        }
+    }
+
+    // Malloc sub-indices, free after calling build_subtree
+    int *right_indices = malloc(sizeof(int) * right_M);
+    int *left_indices = malloc(sizeof(int) * left_M);
+
+    // Split into two sub indices
+    left_M = 0, right_M = 0;
+    for (int i = 0; i < M; i++) {
+        int img_idx = indices[i];
+        if (data->images[img_idx].data[pixel] < 128) {
+            left_indices[left_M] = img_idx;
+            left_M += 1;
+        } else {
+            right_indices[right_M] = img_idx;
+            right_M += 1;
+        }
+    }
+
+    // Assign value
+    dtn->classification = -1;
+    dtn->pixel = pixel;
+    dtn->left = build_subtree(data, left_M, left_indices);
+    dtn->right = build_subtree(data, right_M, right_indices);
+    // Free after being used
+    free(left_indices);
+    free(right_indices);
+    return dtn;
 }
 
 /**
@@ -144,7 +292,21 @@ DTNode *build_dec_tree(Dataset *data) {
     // TODO: Set up `indices` array, call `build_subtree` and return the tree.
     // HINT: Make sure you free any data that is not needed anymore
 
-    return NULL;
+    // Malloc outest indices
+    int *indices = malloc(sizeof(int) * data->num_items);
+
+    // Init indices
+    for (int i = 0; i < data->num_items; i++) {
+        indices[i] = i;
+    }
+
+    // Build DTNode
+    DTNode *dtn = build_subtree(data, data->num_items, indices);
+
+    // Free outest indices
+    free (indices);
+
+    return dtn;
 }
 
 /**
@@ -153,7 +315,22 @@ DTNode *build_dec_tree(Dataset *data) {
 int dec_tree_classify(DTNode *root, Image *img) {
     // TODO: Return the correct label
 
-    return -1;
+    while (root->classification == -1) {
+        if (img->data[root->pixel] < 128) {
+            // Goto left subtree
+            root = root->left;
+        } else {
+            // Goto right subtree
+            root = root->right;
+        }
+    }
+
+    // Reach leaf
+    if (root->pixel != -1) {
+        fprintf(stderr, "ERROR: leaf does not contain a correct classification\n");
+        return -1;
+    }
+    return root->classification;
 }
 
 /**
@@ -162,7 +339,13 @@ int dec_tree_classify(DTNode *root, Image *img) {
 void free_dec_tree(DTNode *node) {
     // TODO: Free the decision tree
 
-    return;
+    if (node->classification == -1) {
+        // Free sub node first
+        free_dec_tree(node->left);
+        free_dec_tree(node->right);
+    }
+    // Free self
+    free(node);
 }
 
 /**
@@ -171,5 +354,15 @@ void free_dec_tree(DTNode *node) {
 void free_dataset(Dataset *data) {
     // TODO: Free dataset (Same as A1)
 
-    return;
+    for(int i = 0; i < data->num_items; i ++) {
+        // Free images data
+        free(data->images[i].data);
+    }
+
+    // Free images and labels
+    free(data->images);
+    free(data->labels);
+
+    // Free data itself
+    free(data);
 }

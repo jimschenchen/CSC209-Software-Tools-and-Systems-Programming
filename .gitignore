@@ -7,3 +7,6 @@ a1/classifier
 .vscode/settings.json
 *.dSYM/
 lab4/greeting
+a2/datasets/testing_data.bin
+a2/datasets/training_data.bin
+a1/

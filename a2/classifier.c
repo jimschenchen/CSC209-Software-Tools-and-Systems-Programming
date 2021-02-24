@@ -42,12 +42,50 @@
  * 
  */
 int main(int argc, char *argv[]) {
-  int total_correct = 0;
+    int total_correct = 0;
 
-  // TODO
+    // TODO
 
+  	if (argc != 3) {
+        fprintf(stderr, "Usage: %s K training_list test_images\n", argv[0]);
+        exit(1);
+  	}
+    char *training_data_file = argv[1];
+    char *testing_data_file = argv[2];
 
-  // Print out answer
-  printf("%d\n", total_correct);
-  return 0;
+    // Load data
+    Dataset *training_data = load_dataset(training_data_file);
+    if (training_data == NULL) {
+        fprintf(stderr, "ERROR: cannot load training_data\n");
+        exit(1);
+    }
+    Dataset *testing_data = load_dataset(testing_data_file);
+    if (testing_data == NULL) {
+        fprintf(stderr, "ERROR: cannot load testing_data\n");
+        exit(1);
+    }
+
+    // fprintf(stdout, "Message: Dataset loaded\n");
+
+    // Build trainning dec tree
+    DTNode *training_dec_tree = build_dec_tree(training_data);
+
+    // fprintf(stdout, "Message: Descision Tree build has been completed\n");
+
+    // Classify
+    for (int i = 0; i< testing_data->num_items; i++) {
+        int predict = dec_tree_classify(training_dec_tree, &(testing_data->images[i]));
+        if (predict == testing_data->labels[i]) {
+            total_correct += 1;
+        }
+    }
+
+    // Free Memo
+    free_dec_tree(training_dec_tree);
+    free_dataset(training_data);
+    free_dataset(testing_data);
+
+    // Print out answer
+    printf("%d\n", total_correct);
+    return 0;
 }
