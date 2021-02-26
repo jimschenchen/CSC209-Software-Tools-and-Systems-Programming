@@ -13,21 +13,15 @@
  */
 
 char *copy(char *dest, const char *src, int capacity) {
-    if (capacity >= sizeof(dest)) {
-        // have same size of oversize then no null-terminator
-        int i;
-        for (i = 0; i < sizeof(dest); i++) {
-            memset(dest+i, src[i], 1);
-        }      
-        memset(dest+i, '\0', 1);
-    } else {
-        // size fit
-        int i;
-        for (i = 0; i < capacity; i++) {
-            memset(dest+i, src[i], 1);
-        }
-        memset(dest+sizeof(dest), '\0', 1);
+
+    int i = 0;
+    for (; i < capacity - 1 && src[i] != '\0'; i++) {
+        memset(dest+i, src[i], 1);
+    }      
+    for (; i < capacity; i++) {
+       memset(dest+i, '\0', 1);
     }
+
     return dest;
 }
 
@@ -56,7 +50,7 @@ int main(int argc, char **argv) {
 
 
     copy(dest, src, size);
-
+ 
 
     printf("%s\n", dest);
     printf("%s %s\n", dummy1, dummy2);
