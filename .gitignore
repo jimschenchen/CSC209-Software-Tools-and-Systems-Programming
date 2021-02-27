@@ -10,3 +10,6 @@ lab4/greeting
 a2/datasets/testing_data.bin
 a2/datasets/training_data.bin
 a1/
+a2/datasets/te_500.bin
+a2/datasets/te_5000.bin
+a2/datasets/tr_1000.bin
