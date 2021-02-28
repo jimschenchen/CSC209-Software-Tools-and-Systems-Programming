@@ -174,7 +174,7 @@ int find_best_split(Dataset *data, int M, int *indices) {
     // TODO: Return the correct pixel
     int min_i = -1;
     double min_v = 1;
-    for (int i = 0; i < 784; i++) {
+    for (int i = 0; i < NUM_PIXELS; i++) {
         double gini_v = gini_impurity(data, M, indices, i);
 
         // Exclude NAN INFINITY (JUST FOR SAFETY)
