@@ -177,13 +177,8 @@ int find_best_split(Dataset *data, int M, int *indices) {
     for (int i = 0; i < NUM_PIXELS; i++) {
         double gini_v = gini_impurity(data, M, indices, i);
 
-        // Exclude NAN INFINITY (JUST FOR SAFETY)
-        if (gini_v == NAN || gini_v == INFINITY) {
-            continue;
-        }
-
         // NAN auto filter out by <
-        if (gini_v < min_v) {
+        if (!isnan(gini_v) && gini_v < min_v) {
             min_v = gini_v;
             min_i = i;
         }
