@@ -34,6 +34,8 @@ Dataset *load_dataset(const char *filename) {
 
     // Malloc dataset
     Dataset *ds = malloc(sizeof(Dataset));
+    if (!ds)
+        perror("Malloc");
 
     // Open file
     FILE *file = fopen(filename, "rb");
@@ -51,7 +53,11 @@ Dataset *load_dataset(const char *filename) {
 
     // Malloc images, labels
     ds->images = malloc(sizeof(Image) * ds->num_items);
+    if (!ds->images)
+        perror("Malloc");
     ds->labels = malloc(sizeof(unsigned char) * ds->num_items);
+    if (!ds->labels)
+        perror("Malloc");
 
     // Read data
     for(int i = 0; i < ds->num_items; i ++) {
@@ -67,6 +73,9 @@ Dataset *load_dataset(const char *filename) {
         ds->images[i].sy = WIDTH;
         // Malloc images data
         ds->images[i].data = malloc(sizeof(unsigned char) * NUM_PIXELS);
+        if (!ds->images[i].data)
+            perror("Malloc");
+
         error = fread(ds->images[i].data, sizeof(unsigned char), NUM_PIXELS, file);
         if (error != NUM_PIXELS) {
             fprintf(stderr, "Error: could not fread %d images\n", i);
@@ -215,11 +224,18 @@ DTNode *build_subtree(Dataset *data, int M, int *indices) {
 
     // Malloc current node
     DTNode *dtn = malloc(sizeof(DTNode));
+    if (!dtn)
+        perror("Malloc");
 
     // Classification
     // Malloc label and freq
     int *label = malloc(sizeof(int));
+    if (!label)
+        perror("Malloc");
     int *freq = malloc(sizeof(int));
+    if (!freq)
+        perror("Malloc");
+
     get_most_frequent(data, M, indices, label, freq);
 
     if ((double)*freq / M > THRESHOLD_RATIO) {
@@ -252,7 +268,11 @@ DTNode *build_subtree(Dataset *data, int M, int *indices) {
 
     // Malloc sub-indices, free after calling build_subtree
     int *right_indices = malloc(sizeof(int) * right_M);
+    if (!right_indices)
+        perror("Malloc");
     int *left_indices = malloc(sizeof(int) * left_M);
+    if (!left_indices)
+        perror("Malloc");
 
     // Split into two sub indices
     left_M = 0, right_M = 0;
@@ -289,6 +309,8 @@ DTNode *build_dec_tree(Dataset *data) {
 
     // Malloc outest indices
     int *indices = malloc(sizeof(int) * data->num_items);
+    if (!indices)
+        perror("Malloc");
 
     // Init indices
     for (int i = 0; i < data->num_items; i++) {
