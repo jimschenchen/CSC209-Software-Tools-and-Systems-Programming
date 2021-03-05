@@ -22,9 +22,13 @@ int main(int argc, char **argv) {
         }
         printf("ppid = %d, pid = %d, i = %d\n", getppid(), getpid(), i);
         if (n != 0) {
+            // If have already create a child process then wait and break
+            int pid;
+            if ((pid = wait(NULL)) == -1) {
+                perror("wait");
+            }
             break;
         }
     }
-    sleep(1);
     return 0;
 }

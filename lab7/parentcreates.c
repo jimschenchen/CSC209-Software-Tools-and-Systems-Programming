@@ -25,6 +25,13 @@ int main(int argc, char **argv) {
             return 0;
         }
     }
-    sleep(1);
+    
+    // children num == iterations
+    int pid;
+    for (i = 0; i < iterations; i++) {
+        if ((pid = wait(NULL)) == -1) {
+            perror("wait");
+        }
+    }
     return 0;
 }
