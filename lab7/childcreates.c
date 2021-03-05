@@ -21,6 +21,9 @@ int main(int argc, char **argv) {
             exit(1);
         }
         printf("ppid = %d, pid = %d, i = %d\n", getppid(), getpid(), i);
+        if (n != 0) {
+            break;
+        }
     }
     sleep(1);
     return 0;
