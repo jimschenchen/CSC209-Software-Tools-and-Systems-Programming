@@ -95,7 +95,7 @@ int knn_predict(Dataset *data, Image *input, int K, double (*fptr)(Image *, Imag
         
         // TODO Change the call below to call distance function passed in as
         // a parameter
-        double dist = distance_euclidean(&data->images[i], input);
+        double dist = fptr(&data->images[i], input);
 
         // Find the maximum distance among the previous K closest
         double max_dist = -1;
@@ -173,6 +173,30 @@ void child_handler(Dataset *training, Dataset *testing, int K,
 
     //TODO
 
+    // pipe read `start_idx` and `N`
+    int start_idx, N;
+    if (read(p_in, &start_idx, sizeof(int)) == -1) {
+        perror("read");
+        exit(1);
+    }
+    if (read(p_in, &N, sizeof(int)) == -1) {
+        perror("read");
+        exit(1);
+    }
+
+    // predict
+    int correctness = 0;
+    for (int i = 0; i< N; i++) {
+        int index = start_idx + i;
+        if (testing->labels[index] == knn_predict(training, testing->images + index, K, fptr)) {
+            correctness += 1;
+        }
+    }
+
+    // write num of correct
+    if (write(p_out, &correctness, sizeof(int)) == -1) {
+        perror("write");
+    }
     return;
 }
 
@@ -187,6 +211,11 @@ void child_handler(Dataset *training, Dataset *testing, int K,
 double distance_cosine(Image *a, Image *b){
 
     //TODO
-
-    return 0.0;
+    double xy = 0.0, x2 = 0.0, y2 = 0.0;
+    for (int i = 0; i < NUM_PIXELS; i++) {
+        xy += (double)a->data[i] * b->data[i];
+        x2 += (double)a->data[i] * a->data[i];
+        y2 += (double)b->data[i] * b->data[i];
+    }
+    return 2 / M_PI * acos(xy / (sqrt(x2) * sqrt(y2)));
 }

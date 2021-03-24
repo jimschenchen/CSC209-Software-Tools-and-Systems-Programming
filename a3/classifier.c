@@ -4,6 +4,8 @@
 #include <sys/types.h>  
 #include <sys/wait.h>  
 #include <string.h>
+#include <math.h>
+#include <time.h>
 #include "knn.h"
 
 /*****************************************************************************/
@@ -60,6 +62,7 @@ int main(int argc, char *argv[]) {
         switch(opt) {
         case 'v':
             verbose = 1;
+            break;
         case 'K':
             K = atoi(optarg);
             break;
@@ -86,9 +89,9 @@ int main(int argc, char *argv[]) {
 
     // TODO The following lines are included to prevent compiler warnings
     // and should be removed when you use the variables.
-    (void)K;
-    (void)dist_metric;
-    (void)num_procs;
+    // (void)K;
+    // (void)dist_metric;
+    // (void)num_procs;
   
     // Set which distance function to use
     /* You can use the following string comparison which will allow
@@ -99,9 +102,16 @@ int main(int argc, char *argv[]) {
      *      //found a match
      * }
      */ 
-  
-    // TODO
 
+    // TODO
+    double (*fptr)(Image *, Image *);
+    if (strncmp(dist_metric, "eucl", strlen("eucl")) == 0){
+        fptr = distance_euclidean;
+    } else if (strncmp(dist_metric, "cos", strlen("cos")) == 0) {
+        fptr = distance_cosine;
+    } else {
+        fprintf(stderr, "Error: dist_metric < %s > does not exist\n", dist_metric);
+    }
 
     // Load data sets
     if(verbose) {
@@ -127,12 +137,91 @@ int main(int argc, char *argv[]) {
 
     // TODO
 
+    // handle image number error
+    if (K > training->num_items) {
+        fprintf(stderr, "Error: K should greater than the number of trainning data!\n");
+        exit(1);
+    }
 
-    // Distribute the work to the children by writing their starting index and
-    // the number of test images to process to their write pipe
+    // declare fds array
+    int fds[num_procs][2];
+
+    for (int i = 0; i < num_procs; i++) {
+        // pipe child
+        pipe(fds[i]);
+
+        int res = fork();
+        if (res < 0) {
+            perror("fork");
+        } else if (res == 0) {
+            // child
+            if(verbose) {
+                printf("    - Child %d created\n", i);
+            }
+            // close previous children fds
+            for (int j = 0; j < i; j++) {
+                close(fds[j][0]);
+                close(fds[j][1]);
+            }
+
+            // handler and wait for read and then write
+            child_handler(training, testing, K, fptr, fds[i][0],fds[i][1]);
+            if(verbose) {
+                printf("    - Child %d completed\n", i);
+            }
+            
+            // close child read / write
+            close(fds[i][0]);
+            close(fds[i][1]);
+            if(verbose) {
+                printf("    - Child %d exit\n", i);
+            }
+            
+            // free
+            free_dataset(training);
+            free_dataset(testing);
+            // child exit
+            exit(0);
+        }
+    }
+
+    // Distribute the work to the children by writing their starting index 
+    // and the number of test images to process to their write pipe
 
     // TODO
+    int next_idx = 0;
+    for (int i = 0; i < num_procs; i++) {
+        
+        // write `start_idx` and `N`
+        int start_idx, N;
+        
+        N = ceil((double)testing->num_items / num_procs);
+        start_idx = next_idx;
+        // if current idx is out of bound
+        if (start_idx + N > testing->num_items) {
+            N = testing->num_items - start_idx;
+        }
+        // set next idx
+        next_idx += N;
+        if(verbose) {
+            printf("    - Child %d check from %d with %d\n", i, start_idx, N);
+        }
 
+
+        if (write(fds[i][1], &start_idx, sizeof(int)) == -1){
+            perror("write");
+        }
+        if (write(fds[i][1], &N, sizeof(int)) == -1){
+            perror("write");
+        }
+
+        if(verbose) {
+            printf("    - write to %d\n", i);
+        }
+
+        // close parent i write
+        close(fds[i][1]);
+    }
 
 
     // Wait for children to finish
@@ -141,14 +230,34 @@ int main(int argc, char *argv[]) {
     }
 
     // TODO
-
+    int status;
+    pid_t pid;
+    for (int i = 0; i< num_procs; i++) {
+        if ((pid = wait(&status)) == -1) {
+            perror("wait");
+        } else {
+            if (!WIFEXITED(status)) {
+                fprintf(stderr, "Child %d does not terminate correctly\n", pid);
+            }
+        }
+    }
 
     // When the children have finised, read their results from their pipe
- 
+    if(verbose) {
+        printf("- Reading the results from children...\n");
+    }
+
     // TODO
-
-
-
+    int child_correct = 0;
+    for (int i = 0; i < num_procs; i++) {
+        if (read(fds[i][0], &child_correct, sizeof(int)) < 0) {
+            perror("read");
+        }
+        total_correct += child_correct;
+        // close parent i read
+        close(fds[i][0]);
+    }
+ 
     if(verbose) {
         printf("Number of correct predictions: %d\n", total_correct);
     }
@@ -159,8 +268,8 @@ int main(int argc, char *argv[]) {
     // Clean up any memory, open files, or open pipes
 
     // TODO
-
-
+    free_dataset(training);
+    free_dataset(testing);
 
     return 0;
 }
