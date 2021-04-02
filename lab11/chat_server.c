@@ -89,7 +89,6 @@ int read_from(int client_index, struct sockname *usernames) {
     buf2[username_size + 2 + strlen(buf) + 1] = '\n';
     buf2[username_size + 2 + strlen(buf) + 2] = '\0';
 
-    printf("%s\n", buf2);
     // boardcast message to all user
     int fdi;
     for (int index = 0; index < MAX_CONNECTIONS; index++) {
@@ -185,6 +184,9 @@ int main(void) {
                 int client_closed = read_from(index, usernames);
                 if (client_closed > 0) {
                     FD_CLR(client_closed, &all_fds);
+
+                    // free
+                    free(usernames[index].username);
                     printf("Client %d disconnected\n", client_closed);
                 } else {
                     printf("Echoing message from client %d\n", usernames[index].sock_fd);
