@@ -67,10 +67,39 @@ int read_from(int client_index, struct sockname *usernames) {
      */
 
     int num_read = read(fd, &buf, BUF_SIZE);
-    buf[num_read] = '\0';
-    if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
-        usernames[client_index].sock_fd = -1;
-        return fd;
+    // add -1 for delete the \n
+    buf[num_read - 1] = '\0';
+
+    // User havs no username
+    if (usernames[client_index].username == NULL) {
+        usernames[client_index].username = malloc(sizeof(buf));
+        strncpy(usernames[client_index].username, buf, BUF_SIZE + 1);
+        return 0;
+    }
+    // add username in front of the return message
+    char buf2[BUF_SIZE + 1];
+    strncpy(buf2, usernames[client_index].username, BUF_SIZE);
+    int username_size = strlen(usernames[client_index].username);
+    // add :
+    char temp[2] = ": ";
+    strncat(buf2, temp, BUF_SIZE - username_size);
+    // add message
+    strncat(buf2, buf, BUF_SIZE - username_size - 2);
+    // add \n
+    buf2[username_size + 2 + strlen(buf) + 1] = '\n';
+    buf2[username_size + 2 + strlen(buf) + 2] = '\0';
+
+    printf("%s\n", buf2);
+    // boardcast message to all user
+    int fdi;
+    for (int index = 0; index < MAX_CONNECTIONS; index++) {
+        fdi = usernames[index].sock_fd;
+        if (usernames[index].sock_fd > -1) {
+            if (num_read == 0 || write(fdi, buf2, strlen(buf2)) != strlen(buf2)) {
+                usernames[client_index].sock_fd = -1;
+                return fdi;
+            }
+        }
     }
 
     return 0;
