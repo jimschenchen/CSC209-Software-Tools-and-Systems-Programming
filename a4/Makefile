@@ -1,4 +1,4 @@
-PORT= X # Change this port number as described in the handout
+PORT= 57559 # Change this port number as described in the handout
 CFLAGS = -g -Wall -std=gnu99
 
 all: auction_server auction_client
@@ -14,3 +14,6 @@ auction_client: auction_client.o
 
 clean:
 	rm -f *.o auction_server auction_client
+
+
+# ./auction_server -v -t 15 -p 57559 Mirror
