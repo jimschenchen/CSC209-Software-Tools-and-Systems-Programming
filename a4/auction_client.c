@@ -304,12 +304,18 @@ int main(void) {
                     int bid_value = strtol(arg2, NULL, 10);
                     char buf[BUF_SIZE];
                     sprintf(buf, "%d", bid_value);
-                    write(a[item_index].sock_fd, buf, sizeof(buf));
+                    if (item_index < MAX_AUCTIONS && a[item_index].sock_fd > -1) {
+                        if (write(a[item_index].sock_fd, buf, sizeof(buf)) == -1) {
+                            perror("client: write bid\n");
+                            exit(1);
+                        }
+                    } else {
+                        fprintf(stderr, "There is no auction open at %d\n", item_index);
+                    }
                     break;
                 }
                 default:
-                    fprintf(stderr, "Usage: auction_server [-v] [-t timeout] [-p port] item\n");
-                    exit(1);
+                    print_menu();
             }
         }
         
@@ -320,18 +326,33 @@ int main(void) {
                 char buf[BUF_SIZE];
                 server_status = read(a[i].sock_fd, buf, sizeof(buf));
                 if (server_status < 0) {
-                    perror("read");
-                    exit(0);
+                    perror("client: read");
+                    exit(1);
                 }
-                update_auction(buf, sizeof(buf), a, i);
+                // server disconnect (just for safety)
+                if (server_status == 0) {
+                    close(a[i].sock_fd);
+                    FD_CLR(a[i].sock_fd, &all_fds);
+                    a[i].current_bid = -1;
+                    a[i].item[0] = '\0';
+                    a[i].sock_fd = -1;
+                } 
+                // update
+                if (buf[strlen(buf) - 1] == '\n' || buf[strlen(buf) - 1] == '\r') {
+                    // last message
+                    fprintf(stdout, "%s\n", buf);
+                    close(a[i].sock_fd);
+                    FD_CLR(a[i].sock_fd, &all_fds);
+                    a[i].current_bid = -1;
+                    a[i].item[0] = '\0';
+                    a[i].sock_fd = -1;
+                } else {
+                    update_auction(buf, sizeof(buf), a, i);
+                }    
             }
 
-            // server disconnect
-            if (server_status == 0) {
-                FD_CLR(a[i].sock_fd, &all_fds);
-            }
+
         }
-
     }
     return 0; // Shoud never get here
 }
