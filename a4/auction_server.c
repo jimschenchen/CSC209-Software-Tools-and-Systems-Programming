@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <signal.h>
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -97,13 +98,6 @@ int read_name(int client_index, struct user *users) {
     if(verbose){
         fprintf(stderr, "[%d] Name: %s\n", fd, users[client_index].name);
     }
-
-/*
-    if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
-        users[client_index].sock_fd = -1;
-        return fd;
-    }
-*/
 	
     return 0;
 }
@@ -137,13 +131,14 @@ int read_bid(int client_index, struct user *users, int *bid) {
     return 0;
 }
 
-void broadcast(struct user *users, char *msg, int size) {
+void broadcast(struct user *users, char *msg, int size, fd_set *fds) {
     for(int i = 0; i < MAX_CONNECTIONS; i++) {
         if(users[i].sock_fd != -1) {
             if(write(users[i].sock_fd, msg, size) == -1) {
-                // Design flaw: can't remove this socket from select set
                 close(users[i].sock_fd);
+                FD_CLR(users[i].sock_fd, fds);
                 users[i].sock_fd = -1;
+                users[i].name[0] = '\0';
             }
         }
     }
@@ -164,7 +159,8 @@ int prep_bid(char *buf, Auction *a, struct timeval *t) {
  * Broadcast to all clients if the bid is higher
  */
 int update_bids(int client_index, struct user *users, 
-                 int new_bid, Auction *auction, struct timeval *t) {
+                 int new_bid, Auction *auction, 
+                 struct timeval *t, fd_set *fds) {
     char buf[BUF_SIZE];
     
 
@@ -178,7 +174,7 @@ int update_bids(int client_index, struct user *users,
                     getpid(), users[client_index].sock_fd, buf);
         }
         
-        broadcast(users, buf, strlen(buf) + 1);
+        broadcast(users, buf, strlen(buf) + 1, fds);
 
     } else {
         fprintf(stderr, "Client %d sent bid that was too low.  Ignored\n",
@@ -193,7 +189,8 @@ int main(int argc, char **argv) {
     int opt;
     int port = PORT;
     struct timeval timeout;
-    struct timeval *time_ptr = NULL;
+    timeout.tv_sec = 3600; // Default is 1 hour
+    timeout.tv_usec = 0;
     int minutes = 0;
     while((opt = getopt(argc, argv, "vt:p:")) != -1) {
         switch(opt) {
@@ -204,7 +201,6 @@ int main(int argc, char **argv) {
                 minutes = atoi(optarg);
                 timeout.tv_sec = minutes * 60;
                 timeout.tv_usec = 0;
-                time_ptr = &timeout;
                 break;
             case 'p':
                 port = atoi(optarg);
@@ -218,6 +214,17 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Expected argument after options\n");
         exit(1);
     }
+
+    // Ignore SIGPIPE so we can catch writes that fail
+    struct sigaction sa;
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = 0;
+    sigemptyset(&sa.sa_mask);
+    if(sigaction(SIGPIPE, &sa, NULL) == -1) {
+        perror("sigaction");
+        exit(1);
+    }
+    
 
     auction.item = argv[optind];
     auction.client = -1;
@@ -287,16 +294,19 @@ int main(int argc, char **argv) {
 		// and retain the original.
         fd_set listen_fds = all_fds;
         int nready;
-        if ((nready = select(max_fd + 1, &listen_fds, NULL, NULL, time_ptr)) == -1) {
+        if ((nready = select(max_fd + 1, &listen_fds, NULL, NULL, &timeout)) == -1) {
             perror("server: select");
             exit(1);
+        }
+        if(verbose) {
+            printf("timeout = %ld\n", timeout.tv_sec);
         }
         if(nready == 0){
             char buf[BUF_SIZE];
             sprintf(buf, "Auction closed: %s wins with a bid of %d\r\n", 
                     users[auction.client].name, auction.highest_bid);
             printf("%s", buf);
-            broadcast(users, buf, BUF_SIZE);
+            broadcast(users, buf, BUF_SIZE, &all_fds);
             exit(0);
         }
 
@@ -317,34 +327,38 @@ int main(int argc, char **argv) {
 
         // Next, check the clients.
         for (int index = 0; index < MAX_CONNECTIONS; index++) {
-            if (users[index].sock_fd > -1 && FD_ISSET(users[index].sock_fd, &listen_fds)) {
+            int client_fd = users[index].sock_fd;
+            if(client_fd > -1 && FD_ISSET(client_fd, &listen_fds)) {
                 int client_closed = 0;
                 int new_bid = 0;
                 if(users[index].name[0] == '\0') {
                     client_closed = read_name(index, users);
                     if(client_closed == 0){
                         char buf[BUF_SIZE];
-                        prep_bid(buf, &auction, time_ptr);
+                        prep_bid(buf, &auction, &timeout);
                         if(verbose) {
                             fprintf(stderr, "[%d] Sending to %d:\n    %s\n", 
-                                    getpid(), users[index].sock_fd, buf);
-                        }           
-                        if(write(users[index].sock_fd, buf, strlen(buf) + 1) == -1) {
-                            fprintf(stderr, "Write to %d failed\n", sock_fd);   
-                            close(sock_fd);
+                                    getpid(), client_fd, buf);
+                        } 
+                        if(write(client_fd, buf, strlen(buf)+1) < strlen(buf)) {
+                            fprintf(stderr, "Write to %d failed\n", client_fd);
+                            client_closed = client_fd;
                         }
-
                     }
 
                 } else {  // read a bid
                     client_closed = read_bid(index, users, &new_bid);
                     if(client_closed == 0) {
-                        update_bids(index, users, new_bid, &auction, time_ptr);
+                        update_bids(index, users, new_bid, &auction, 
+                                    &timeout, &all_fds);
                     }
                 }
 
                 if (client_closed > 0) {
                     FD_CLR(client_closed, &all_fds);
+                    close(users[index].sock_fd);
+                    users[index].sock_fd = -1;
+                    users[index].name[0] = '\0';
                     printf("Client %d disconnected\n", client_closed);
                 } 
             }

@@ -16,4 +16,4 @@ clean:
 	rm -f *.o auction_server auction_client
 
 
-# ./auction_server -v -t 15 -p 57559 Mirror
+# ./auction_server -v -t 15 -p 57559 Mirrora
