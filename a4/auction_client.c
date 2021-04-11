@@ -186,7 +186,7 @@ void update_auction(char *buf, int size, struct auction_data *a, int index) {
         return;
     }
 
-    printf("\nNew bid for %s [%d] is %d (%d seconds left)\n", a[index].item, a[index].sock_fd, a[index].current_bid, seconds);
+    printf("\nNew bid for %s [%d] is %d (%d seconds left)\n", a[index].item, index, a[index].current_bid, seconds);
 
     // fprintf(stderr, "ERROR malformed bid: %s", buf);
     // printf("\nNew bid for %s [%d] is %d (%d seconds left)\n",           );
@@ -194,7 +194,7 @@ void update_auction(char *buf, int size, struct auction_data *a, int index) {
 
 // helper funciton for handling add
 // return the fd
-int handle_add (struct auction_data *a, char *hostname, int port, char *name) {
+int handle_add (struct auction_data *a, char *hostname, int port, const char *name) {
     // search the available auctions
     int auction_index = 0;
     while (auction_index < MAX_AUCTIONS && a[auction_index].sock_fd != -1) {
@@ -208,9 +208,8 @@ int handle_add (struct auction_data *a, char *hostname, int port, char *name) {
     // do not need to check the bad inputs
     int fd = add_server(hostname, port);
     if (fd < 0) {
-        fprintf(stderr, "client: add_server");
+        fprintf(stderr, "client: hostname and port are not valide\n");
         close(fd);
-        exit(1);
     }
     // add sock fd to a
     a[auction_index].sock_fd = fd;
@@ -243,6 +242,9 @@ int main(void) {
         fprintf(stderr, "ERROR: read from stdin failed\n");
         exit(1);
     }
+
+    name[num_read] = '\0';
+
     print_menu();
 
     // TODO
