@@ -1,4 +1,4 @@
-# CSC209 Software Tools and Systems Programming
+# CSC209-Software-Tools-and-Systems-Programming
 
 This is all my labs and assignments from CSC209H1 S 20211 I took at the University of Toronto.
 
